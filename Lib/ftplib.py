@@ -39,9 +39,13 @@ python ftplib.py -d localhost -l -p -l
 import sys
 import socket
 from socket import _GLOBAL_DEFAULT_TIMEOUT
+import logging
 
 __all__ = ["FTP", "error_reply", "error_temp", "error_perm", "error_proto",
            "all_errors"]
+
+
+logger = logging.getLogger(__name__)
 
 # Magic number from <socket.h>
 MSG_OOB = 0x1                           # Process data out of band
@@ -163,8 +167,7 @@ class FTP:
     def getwelcome(self):
         '''Get the welcome message from the server.
         (this is read and squirreled away by connect())'''
-        if self.debugging:
-            print('*welcome*', self.sanitize(self.welcome))
+        logger.debug('*welcome* %s', self.sanitize(self.welcome))
         return self.welcome
 
     def set_debuglevel(self, level):
@@ -196,12 +199,12 @@ class FTP:
         sys.audit("ftplib.sendcmd", self, line)
         line = line + CRLF
         if self.debugging > 1:
-            print('*put*', self.sanitize(line))
+            logger.debug('*put* %s', self.sanitize(line))
         self.sock.sendall(line.encode(self.encoding))
 
     # Internal: send one command to the server (through putline())
     def putcmd(self, line):
-        if self.debugging: print('*cmd*', self.sanitize(line))
+        logger.debug('*cmd* %s', self.sanitize(line))
         self.putline(line)
 
     # Internal: return one line from the server, stripping CRLF.
@@ -211,7 +214,7 @@ class FTP:
         if len(line) > self.maxline:
             raise Error("got more than %d bytes" % self.maxline)
         if self.debugging > 1:
-            print('*get*', self.sanitize(line))
+            logger.debug('*get* %s', self.sanitize(line))
         if not line:
             raise EOFError
         if line[-2:] == CRLF:
@@ -240,8 +243,7 @@ class FTP:
     # Raise various errors if the response indicates an error
     def getresp(self):
         resp = self.getmultiline()
-        if self.debugging:
-            print('*resp*', self.sanitize(resp))
+        logger.debug('*resp* %s', self.sanitize(resp))
         self.lastresp = resp[:3]
         c = resp[:1]
         if c in {'1', '2', '3'}:
@@ -458,8 +460,8 @@ class FTP:
                 line = fp.readline(self.maxline + 1)
                 if len(line) > self.maxline:
                     raise Error("got more than %d bytes" % self.maxline)
-                if self.debugging > 2:
-                    print('*retr*', repr(line))
+                if self.debugging > 1:
+                    logger.debug('*retr* %r', line)
                 if not line:
                     break
                 if line[-2:] == CRLF:
